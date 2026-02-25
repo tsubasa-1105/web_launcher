@@ -1,0 +1,12 @@
+services:
+  web-launcher:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: web-launcher:latest
+    container_name: web-launcher
+    restart: unless-stopped
+    ports:
+      - "80:8080"
+    volumes:
+      - ./data:/data
