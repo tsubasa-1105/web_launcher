@@ -3,30 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web Launcher</title>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' fill='%234f46e5'%3E%3Crect x='10' y='10' width='35' height='35' rx='8' /%3E%3Crect x='55' y='10' width='35' height='35' rx='8' /%3E%3Crect x='10' y='55' width='35' height='35' rx='8' /%3E%3Crect x='55' y='55' width='35' height='35' rx='8' /%3E%3C/svg%3E">
-    
+    <title>Web Launcher Dashboard</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' fill='%2306b6d4'%3E%3Crect x='10' y='10' width='35' height='35' rx='8'/%3E%3Crect x='55' y='10' width='35' height='35' rx='8'/%3E%3Crect x='10' y='55' width='35' height='35' rx='8'/%3E%3Crect x='55' y='55' width='35' height='35' rx='8'/%3E%3C/svg%3E">
+
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Sortable.js CDN (ドラッグ＆ドロップ用) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+
+    <!-- Google Fonts: Inter + JetBrains Mono (コード表示用) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
     <style>
-        /* OSのダークモード設定に追従 */
+        /* OS のダークモード設定に追従 */
         :root {
             color-scheme: light dark;
         }
+
         body {
             font-family: 'Inter', sans-serif;
         }
-        /* Sortable.js のドラッグ中スタイル */
+
+        .mono-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* グリッドパターン背景 */
+        .grid-background {
+            background-image:
+                linear-gradient(rgba(6, 182, 212, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(6, 182, 212, 0.03) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+
+        /* ドラッグ＆ドロップ用 */
         .sortable-ghost {
-            opacity: 0.4;
-            background-color: #4f46e5; /* indigo-600 */
+            opacity: 0.5;
+            background-color: rgba(6, 182, 212, 0.1);
+            border-color: #06b6d4 !important;
         }
         .sortable-chosen {
             cursor: grabbing;
         }
-        /* メッセージ表示用のトランジション */
+
+        /* トーストメッセージ */
         .toast-message {
             transition: opacity 0.3s ease-out, transform 0.3s ease-out;
         }
@@ -38,178 +60,267 @@
             opacity: 0;
             transform: translateY(20px);
         }
-        /* カスタムカラーピッカーのスタイル */
+
+        /* カスタムカラーピッカー */
         input[type="color"] {
             -webkit-appearance: none;
             -moz-appearance: none;
             appearance: none;
-            width: 40px;
-            height: 40px;
+            width: 48px;
+            height: 48px;
             padding: 0;
             border: none;
-            border-radius: 8px;
+            border-radius: 12px;
             cursor: pointer;
             background-color: transparent;
+            overflow: hidden;
         }
         input[type="color"]::-webkit-color-swatch-wrapper {
             padding: 0;
         }
         input[type="color"]::-webkit-color-swatch {
-            border: 2px solid #9ca3af; /* gray-400 */
-            border-radius: 8px;
+            border: 2px solid #cbd5e1;
+            border-radius: 12px;
         }
         .dark input[type="color"]::-webkit-color-swatch {
-            border-color: #4b5563; /* gray-600 */
+            border-color: #475569;
         }
-        /* Firefox用 */
         input[type="color"]::-moz-color-swatch {
-            border: 2px solid #9ca3af; /* gray-400 */
-            border-radius: 8px;
+            border: 2px solid #cbd5e1;
+            border-radius: 12px;
         }
         .dark input[type="color"]::-moz-color-swatch {
-            border-color: #4b5563; /* gray-600 */
+            border-color: #475569;
         }
-        /* 絵文字ピッカーのボタンスタイル */
+
+        /* 絵文字ピッカーボタン */
         .emoji-btn {
             transition: transform 0.1s ease-out, background-color 0.1s;
         }
         .emoji-btn:hover {
-            transform: scale(1.1);
-            background-color: rgba(128, 128, 128, 0.1);
+            transform: scale(1.15);
+            background-color: rgba(6, 182, 212, 0.1);
         }
-        /* 絵文字ピッカーのカテゴリタブ */
+
+        /* 絵文字ピッカーのタブ */
         .emoji-tab-btn {
-            transition: background-color 0.1s, color 0.1s;
+            transition: all 0.15s ease;
         }
         .emoji-tab-btn[aria-selected="true"] {
-            background-color: #4f46e5; /* indigo-600 */
+            background-color: #06b6d4;
             color: white;
+            box-shadow: 0 2px 8px rgba(6, 182, 212, 0.3);
         }
         .emoji-tab-btn[aria-selected="false"] {
             background-color: transparent;
-            color: #6b7280; /* gray-500 */
+            color: #64748b;
         }
         .dark .emoji-tab-btn[aria-selected="false"] {
-            color: #d1d5db; /* gray-300 */
+            color: #94a3b8;
         }
-        .dark .emoji-tab-btn[aria-selected="true"] {
-            background-color: #4f46e5; /* indigo-600 */
+
+        /* グラスモーフィム効果 */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        .dark .glass-panel {
+            background: rgba(15, 23, 42, 0.7);
+        }
+
+        /* カードのホバーエフェクト */
+        .link-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .link-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(6, 182, 212, 0.15);
+        }
+
+        /* スクロールバーのカスタム */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+
+        /* テキストのアンチエイリアス強化 */
+        .text-sm, .text-xs, .text-lg {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* ローディングアニメーション */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 0.5; }
+            50% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(0.8); opacity: 0.5; }
+        }
+        .loading-ring {
+            animation: pulse-ring 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        /* ステータスインジケーターの点滅 */
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.3; }
+        }
+        .status-dot {
+            animation: blink 2s ease-in-out infinite;
         }
     </style>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen antialiased transition-colors duration-300">
+<body class="bg-gradient-to-br from-slate-50 via-white to-cyan-50 dark:from-slate-950 dark:via-slate-900 dark:to-cyan-950 text-gray-800 dark:text-gray-200 min-h-screen antialiased transition-colors duration-500 grid-background">
 
     <!-- メインコンテナ -->
-    <!-- ★ 修正: max-w-4xl から max-w-5xl に変更し、2列表示のスペースを確保 -->
-    <div class="container mx-auto max-w-5xl p-4 sm:p-8">
-        
-        <!-- ヘッダーと設定トグル -->
-        <header class="flex justify-between items-center mb-6">
-            <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200">
-                Web Launcher
-            </h1>
-            
+    <div class="container mx-auto max-w-6xl p-4 sm:p-6 lg:p-8">
+
+        <!-- ヘッダー -->
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+            <div class="flex items-start md:items-center gap-6">
+                <div>
+                    <h1 class="text-3xl md:text-4xl font-bold bg-gradient-to-r from-cyan-600 via-teal-500 to-indigo-600 dark:from-cyan-400 dark:via-teal-400 dark:to-indigo-400 bg-clip-text text-transparent">
+                        Web Launcher
+                    </h1>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 mono-font">
+                        <span class="inline-block w-2 h-2 rounded-full bg-green-500 status-dot mr-2"></span>
+                        System Operational
+                    </p>
+                </div>
+
+                <!-- デジタル時計（モバイルでも表示） -->
+                <div class="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-gradient-to-br from-cyan-50 to-teal-50 dark:from-slate-800 dark:to-slate-800 border border-cyan-200/50 dark:border-slate-700 shadow-sm">
+                    <span class="mono-font text-xs font-medium text-cyan-600/70 dark:text-cyan-400/60" id="digital-date">01/01</span>
+                    <div class="w-px h-5 bg-cyan-200 dark:bg-slate-700 hidden md:block"></div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="mono-font text-lg font-bold text-cyan-700 dark:text-cyan-400" id="digital-clock-hours">00</span>
+                        <span class="mono-font text-xl text-cyan-500/50 dark:text-cyan-400/50">:</span>
+                        <span class="mono-font text-lg font-bold text-cyan-700 dark:text-cyan-400" id="digital-clock-minutes">00</span>
+                        <span class="mono-font text-xl text-cyan-500/50 dark:text-cyan-400/50 hidden md:block">:</span>
+                        <span class="mono-font text-lg font-bold text-cyan-600 dark:text-cyan-300" id="digital-clock-seconds">00</span>
+                    </div>
+                </div>
+            </div>
+
             <div class="flex items-center gap-3">
-                <!-- 編集モード時のアクションボタン (初期非表示) -->
+                <!-- 編集モード時のアクションボタン -->
                 <div id="edit-mode-actions" class="hidden flex items-center gap-3">
-                    <button id="cancel-changes" class="px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium hover:bg-gray-300 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400">
+                    <button id="cancel-changes" class="px-4 py-2 rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition-all shadow-sm">
                         キャンセル
                     </button>
-                    <button id="save-changes" class="px-4 py-2 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        保存
+                    <button id="save-changes" class="px-5 py-2.5 rounded-lg bg-gradient-to-r from-cyan-600 to-teal-600 text-white font-medium hover:from-cyan-500 hover:to-teal-500 focus:outline-none focus:ring-2 focus:ring-cyan-400 shadow-md hover:shadow-lg transition-all">
+                        変更を保存
                     </button>
                 </div>
 
                 <!-- 設定モードトグルボタン -->
-                <button id="toggle-edit-mode" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-all">
-                    <!-- Icon: Settings (Edit Mode OFF) -->
+                <button id="toggle-edit-mode" class="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gradient-to-r from-cyan-600 to-teal-600 text-white font-medium hover:from-cyan-500 hover:to-teal-500 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 dark:focus:ring-offset-slate-900 transition-all shadow-md hover:shadow-lg">
                     <svg id="icon-settings" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0M3.75 18H7.5m3-6h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0M3.75 12H7.5" />
                     </svg>
-                    <!-- Icon: Close (Edit Mode ON) -->
                     <svg id="icon-close" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 hidden">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
-                    <span id="toggle-edit-text">設定モード</span>
+                    <span id="toggle-edit-text" class="font-semibold">設定モード</span>
                 </button>
             </div>
         </header>
 
         <!-- リンク一覧 -->
         <main>
-            <!-- 新規追加ボタン (設定モード時のみ表示) -->
+            <!-- 新規追加ボタン（設定モード時のみ表示） -->
             <div id="add-card-container" class="hidden mb-6">
-                <button id="add-new-card-btn" class="w-full py-4 px-6 border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg text-gray-500 dark:text-gray-400 hover:border-indigo-500 hover:text-indigo-500 transition-colors flex items-center justify-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                <button id="add-new-card-btn" class="w-full py-4 px-6 border-2 border-dashed border-cyan-300 dark:border-cyan-700 rounded-xl text-cyan-600 dark:text-cyan-400 hover:border-cyan-500 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 transition-all flex items-center justify-center gap-3 group">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 group-hover:scale-110 transition-transform">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                     </svg>
-                    <span>新しいカードを追加</span>
+                    <span class="font-medium">新しいリンクを追加</span>
                 </button>
             </div>
 
-            <!-- ★ 修正: lg:grid-cols-3 を削除し、md:grid-cols-2 (中画面以上で2列) に変更 -->
-            <div id="links-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- ローディングスピナー (初回読み込み時) -->
-                <!-- ★ 修正: lg:col-span-3 を削除 -->
-                <div id="loading-spinner" class="md:col-span-2 text-center py-12">
-                    <svg class="animate-spin h-8 w-8 text-indigo-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <p class="mt-2 text-gray-500 dark:text-gray-400">Loading...</p>
+            <!-- リンクグリッド -->
+            <div id="links-container" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <!-- ローディングスピナー -->
+                <div id="loading-spinner" class="md:col-span-2 text-center py-16">
+                    <div class="relative inline-block">
+                        <div class="absolute inset-0 rounded-full bg-cyan-400 dark:bg-cyan-600 loading-ring"></div>
+                        <svg class="animate-spin h-8 w-8 text-white mx-auto relative z-10" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </div>
+                    <p class="mt-4 text-gray-500 dark:text-gray-400 mono-font text-sm">データをロード中...</p>
                 </div>
             </div>
-            
-            <!-- データが空の場合の表示 (JSで制御) -->
-            <div id="empty-state" class="hidden text-center py-16 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12 mx-auto text-gray-400">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
-                </svg>
-                <h3 class="mt-4 text-lg font-medium text-gray-800 dark:text-gray-200">リンクがありません</h3>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">「設定モード」から新しいリンクを追加してください。</p>
+
+            <!-- データが空の場合の表示 -->
+            <div id="empty-state" class="hidden text-center py-16 glass-panel rounded-2xl border border-gray-200 dark:border-slate-700">
+                <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-cyan-100 to-teal-100 dark:from-cyan-900/30 dark:to-teal-900/30 mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-10 h-10 text-cyan-600 dark:text-cyan-400">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                    </svg>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-200">リンクがありません</h3>
+                <p class="mt-2 text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">「設定モード」から新しいリンクを追加して、あなたのパーソナルダッシュボードを構築しましょう。</p>
             </div>
         </main>
 
-        <!-- 設定モード UI (ヒントのみ) -->
-        <footer id="edit-controls" class="hidden mt-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-            <!-- リンクの追加フォームは削除されました -->
-            <!-- 保存/キャンセルボタンはヘッダーに移動しました -->
-            <p class="text-sm text-gray-500 dark:text-gray-400 text-center">
-                ヒント: カードをドラッグ＆ドロップして並び替えできます。
-            </p>
+        <!-- 設定モード UI（ヒント） -->
+        <footer id="edit-controls" class="hidden mt-6 p-4 glass-panel rounded-xl border border-gray-200 dark:border-slate-700">
+            <div class="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-cyan-500">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+                </svg>
+                <span class="mono-font">ヒント：カードをドラッグ＆ドロップして並び替えできます | 色と絵文字でカスタマイズ可能</span>
+            </div>
         </footer>
     </div>
 
-    <!-- メッセージ表示エリア (トースト) -->
-    <div id="toast-container" class="fixed bottom-4 right-4 z-50 space-y-2">
-        <!-- JSでメッセージが挿入されます -->
+    <!-- メッセージ表示エリア（トースト） -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-50 space-y-3">
+        <!-- JS でメッセージが挿入されます -->
     </div>
 
-    <!-- 絵文字ピッカー (モーダル) -->
-    <div id="emoji-picker-modal" class="hidden fixed inset-0 z-40 bg-black/30 dark:bg-black/50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="emoji-picker-title">
-        <div id="emoji-picker-content" class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-sm max-h-[70vh] flex flex-col">
+    <!-- 絵文字ピッカー（モーダル） -->
+    <div id="emoji-picker-modal" class="hidden fixed inset-0 z-40 bg-black/40 dark:bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="emoji-picker-title">
+        <div id="emoji-picker-content" class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm max-h-[70vh] flex flex-col border border-gray-200 dark:border-slate-700">
             <!-- ヘッダーと検索バー -->
-            <div class="p-3 border-b border-gray-200 dark:border-gray-700">
-                <h3 id="emoji-picker-title" class="text-lg font-medium text-center mb-2">絵文字を選択</h3>
-                <input id="emoji-search-input" type="text" placeholder="絵文字を検索 (例: 笑顔, dog, ...)" class="w-full px-3 py-2 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+            <div class="p-4 border-b border-gray-200 dark:border-slate-700">
+                <h3 id="emoji-picker-title" class="text-lg font-semibold text-center mb-3 text-gray-800 dark:text-gray-200">絵文字を選択</h3>
+                <input id="emoji-search-input" type="text" placeholder="絵文字を検索 (例：笑顔，dog, ...)" class="w-full px-4 py-2.5 rounded-lg border-gray-300 dark:border-slate-600 shadow-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 mono-font text-sm">
             </div>
-            
+
             <!-- カテゴリタブ -->
-            <div id="emoji-picker-tabs" class="p-2 flex flex-nowrap overflow-x-auto gap-1 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700" role="tablist">
-                <!-- JSでタブが挿入されます -->
+            <div id="emoji-picker-tabs" class="p-3 flex flex-nowrap overflow-x-auto gap-2 border-b border-gray-200 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-700/50" role="tablist">
+                <!-- JS でタブが挿入されます -->
             </div>
 
             <!-- 絵文字グリッド -->
-            <!-- ★ 修正: grid-cols-8 から grid-cols-7 sm:grid-cols-8 に変更 (モバイル対応) -->
-            <div id="emoji-picker-grid" class="flex-1 overflow-y-auto p-3 grid grid-cols-7 sm:grid-cols-8 gap-1" role="grid">
-                <!-- JSで絵文字が挿入されます -->
+            <div id="emoji-picker-grid" class="flex-1 overflow-y-auto p-3 grid grid-cols-7 sm:grid-cols-8 gap-1.5" role="grid">
+                <!-- JS で絵文字が挿入されます -->
             </div>
         </div>
     </div>
 
-    <!-- JS (SPAロジック) -->
+    <!-- JS (SPA ロジック) -->
     <script type="module">
-        // SVGアイコン
+        // SVG アイコン
         const icons = {
             copy: `
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
@@ -222,7 +333,7 @@
                 </svg>
             `,
             handle: `
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-gray-400 dark:text-gray-500 cursor-move">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-gray-400 dark:text-gray-500 cursor-move hover:text-cyan-500 transition-color">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9h16.5m-16.5 6.75h16.5" />
                 </svg>
             `,
@@ -233,7 +344,7 @@
             `
         };
 
-// 拡張: 絵文字データ (カテゴリとキーワード付き)
+        // 絵文字データ（カテゴリとキーワード付き）
         const emojiCategories = {
             smileys: "顔",
             animals: "動物",
@@ -508,7 +619,7 @@
             { e: "❤️‍🔥", k: ["燃えるハート", "heart on fire"], c: "symbols" },
             { e: "❤️‍🩹", k: ["絆創膏ハート", "mending heart"], c: "symbols" },
             { e: "❣️", k: ["感嘆符ハート", "heart exclamation"], c: "symbols" },
-            { e: "💕", k: ["2つのハート", "two hearts"], c: "symbols" },
+            { e: "💕", k: ["2 つのハート", "two hearts"], c: "symbols" },
             { e: "💞", k: ["回るハート", "revolving hearts"], c: "symbols" },
             { e: "💓", k: ["鼓動", "beating heart"], c: "symbols" },
             { e: "💗", k: ["成長", "growing heart"], c: "symbols" },
@@ -524,7 +635,7 @@
             { e: "💨", k: ["ダッシュ", "dash"], c: "symbols" },
             { e: "💦", k: ["汗", "sweat", "drops"], c: "symbols" },
             { e: "💤", k: ["眠り", "zzz", "sleep"], c: "symbols" },
-            { e: "💯", k: ["100点", "100", "perfect"], c: "symbols" },
+            { e: "💯", k: ["100 点", "100", "perfect"], c: "symbols" },
             { e: "⭕️", k: ["丸", "まる", "ok", "circle"], c: "symbols" },
             { e: "❌", k: ["バツ", "ばつ", "no", "cross"], c: "symbols" },
             { e: "❓", k: ["？", "はてな", "question"], c: "symbols" },
@@ -543,12 +654,12 @@
             originalLinks: [], // キャンセル用に保持する元のデータ
             editMode: false,
             sortableInstance: null,
-            defaultColor: '#6366f1', // Indigo-600
+            defaultColor: '#06b6d4', // Cyan-600
             currentEmojiInput: null, // 絵文字ピッカーが対象とする入力欄
-            currentEmojiCategory: 'smileys', // ★追加: 絵文字ピッカーの現在カテゴリ
+            currentEmojiCategory: 'smileys', // 絵文字ピッカーの現在カテゴリ
         };
 
-        // DOM要素
+        // DOM 要素
         const $ = {
             linksContainer: document.getElementById('links-container'),
             loadingSpinner: document.getElementById('loading-spinner'),
@@ -557,7 +668,7 @@
             toggleEditText: document.getElementById('toggle-edit-text'),
             iconSettings: document.getElementById('icon-settings'),
             iconClose: document.getElementById('icon-close'),
-            editControls: document.getElementById('edit-controls'), // フッター (ヒント用)
+            editControls: document.getElementById('edit-controls'), // フッター（ヒント用）
             addCardContainer: document.getElementById('add-card-container'), // 新規追加ボタンのコンテナ
             addNewCardBtn: document.getElementById('add-new-card-btn'), // 新規追加ボタン
             editModeActions: document.getElementById('edit-mode-actions'), // ヘッダーの保存/キャンセルコンテナ
@@ -568,22 +679,21 @@
             emojiPickerModal: document.getElementById('emoji-picker-modal'),
             emojiPickerContent: document.getElementById('emoji-picker-content'),
             emojiSearchInput: document.getElementById('emoji-search-input'),
-            emojiPickerTabs: document.getElementById('emoji-picker-tabs'), // ★追加
+            emojiPickerTabs: document.getElementById('emoji-picker-tabs'), // タブ
             emojiPickerGrid: document.getElementById('emoji-picker-grid'),
         };
 
-        // --- API通信 ---
+        // --- API 通信 ---
 
         async function fetchLinks() {
             try {
-                // ★ 修正: サーバーのAPIを呼び出す
                 const response = await fetch('/api/links');
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const data = await response.json();
-                
-                state.links = data || []; // nullの場合も考慮
+
+                state.links = data || [];
                 state.originalLinks = JSON.parse(JSON.stringify(state.links));
             } catch (error) {
                 console.error(error);
@@ -595,7 +705,6 @@
 
         async function postLinks(linksToSave) {
             try {
-                // ★ 修正: サーバーのAPIにPOSTリクエストを送る
                 const response = await fetch('/api/links', {
                     method: 'POST',
                     headers: {
@@ -607,10 +716,9 @@
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                
-                // サーバーから返却された保存済みのデータを状態にセット
+
                 const savedData = await response.json();
-                
+
                 state.links = savedData || [];
                 state.originalLinks = JSON.parse(JSON.stringify(state.links));
                 showToast('変更を保存しました', 'success');
@@ -626,7 +734,7 @@
 
         function render() {
             $.linksContainer.innerHTML = '';
-            
+
             if (state.links.length === 0 && !state.editMode) {
                 $.emptyState.classList.remove('hidden');
                 $.loadingSpinner.classList.add('hidden');
@@ -647,74 +755,117 @@
         function createLinkCard(link) {
             const div = document.createElement('div');
             const color = link.color || state.defaultColor;
-            
-            div.className = `link-card bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 transition-all duration-300 border-l-4 ${state.editMode ? 'shadow-lg' : 'hover:shadow-lg hover:scale-[1.02]'}`;
-            div.style.borderColor = color; // 左ボーダーに色を適用
+
+            // 色の明度に応じて文字色を調整する関数
+            // 淡い色→濃い文字、濃い色→適度な明度の文字
+            function getTextColorForColor(colorHex) {
+                const hex = colorHex.replace('#', '');
+                const r = parseInt(hex.substr(0, 2), 16);
+                const g = parseInt(hex.substr(2, 2), 16);
+                const b = parseInt(hex.substr(4, 2), 16);
+                // 明度を計算
+                const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+
+                // 明度に応じて文字色を調整
+                // 明度が高い（淡い色）→ 濃い黒（#1f2937 / gray-800）
+                // 明度が低い（濃い色）→ 適度な明度のグレー（#4b5563 / gray-600）
+                if (brightness > 180) {
+                    return '#1f2937'; // gray-800（濃い黒）
+                } else if (brightness > 100) {
+                    return '#374151'; // gray-700（中濃）
+                } else {
+                    return '#4b5563'; // gray-600（中薄）
+                }
+            }
+
+            // 色の明度に応じてタイトル文字色を調整する関数
+            // 淡い色は調整、濃い色は元の色を使用
+            function getTitleColorForCardColor(colorHex) {
+                const hex = colorHex.replace('#', '');
+                const r = parseInt(hex.substr(0, 2), 16);
+                const g = parseInt(hex.substr(2, 2), 16);
+                const b = parseInt(hex.substr(4, 2), 16);
+                // 明度を計算
+                const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+
+                // 淡い色（明度が高い）のみ調整、濃い色は元の色を使用
+                // 閾値を 150 に下げて、より多くの色を濃い文字色にする
+                if (brightness > 150) {
+                    return '#374151'; // gray-700（中濃）
+                }
+                // 濃い色は元の色をそのまま使用
+                return colorHex;
+            }
+
+            div.className = `link-card bg-white/80 dark:bg-slate-800/80 glass-panel rounded-xl shadow-md border border-gray-200/50 dark:border-slate-700/50 transition-all duration-300 border-l-4 ${state.editMode ? 'shadow-lg' : ''}`;
+            div.style.borderColor = color;
             div.dataset.id = link.id;
 
-            // 編集モードUI
+            // 編集モード UI
             const editModeUI = `
-                <div class="p-4">
-                    <div class="drag-handle absolute top-2 right-2 p-1 text-gray-400 dark:text-gray-500 cursor-move" title="ドラッグして並び替え">
+                <div class="p-5">
+                    <div class="drag-handle absolute top-3 right-3 p-1.5 text-gray-400 dark:text-gray-500 cursor-move hover:text-cyan-500 transition-color rounded-lg" title="ドラッグして並び替え">
                         ${icons.handle}
                     </div>
-                    
-                    <div class="space-y-3">
-                        <div class="flex gap-3 items-start">
+
+                    <div class="space-y-4">
+                        <div class="flex gap-4 items-start">
                             <!-- 色 -->
                             <div class="flex-shrink-0">
-                                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">色</label>
+                                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 mono-font">COLOR</label>
                                 <input type="color" value="${escapeHTML(color)}" data-field="color" class="edit-input" title="カラーピッカー">
                             </div>
                             <!-- 絵文字 -->
                             <div class="flex-shrink-0 w-16">
-                                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">絵文字</label>
-                                <input type="text" value="${escapeHTML(link.emoji || '')}" data-field="emoji" class="edit-input emoji-input mt-0.5 block w-full text-lg text-center rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-gray-700 py-2 px-3 cursor-pointer" maxlength="4" readonly>
+                                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 mono-font">EMOJI</label>
+                                <input type="text" value="${escapeHTML(link.emoji || '')}" data-field="emoji" class="edit-input emoji-input mt-0.5 block w-full text-xl text-center rounded-lg border-gray-300 dark:border-slate-600 shadow-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 bg-white/50 dark:bg-slate-700/50 py-2 px-3 cursor-pointer" maxlength="4" readonly>
                             </div>
                             <!-- 名前 -->
                             <div class="flex-grow min-w-0">
-                                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">名前</label>
-                                <input type="text" value="${escapeHTML(link.name)}" data-field="name" class="edit-input mt-0.5 block w-full font-semibold rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-gray-700 py-2 px-3">
+                                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 mono-font">NAME</label>
+                                <input type="text" value="${escapeHTML(link.name)}" data-field="name" class="edit-input mt-0.5 block w-full font-semibold rounded-lg border-gray-300 dark:border-slate-600 shadow-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 bg-white/50 dark:bg-slate-700/50 py-2 px-3">
                             </div>
                         </div>
-                        
+
                         <!-- URL -->
                         <div>
-                            <label class="block text-xs font-medium text-gray-500 dark:text-gray-400">URL</label>
-                            <input type="text" value="${escapeHTML(link.url)}" data-field="url" class="edit-input mt-0.5 block w-full text-sm rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-gray-700 py-2 px-3">
+                            <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 mono-font">URL</label>
+                            <input type="text" value="${escapeHTML(link.url)}" data-field="url" class="edit-input mt-0.5 block w-full text-sm rounded-lg border-gray-300 dark:border-slate-600 shadow-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 bg-white/50 dark:bg-slate-700/50 py-2 px-3 mono-font">
                         </div>
-                        
+
                         <!-- 説明 -->
                         <div>
-                            <label class="block text-xs font-medium text-gray-500 dark:text-gray-400">説明 (メモ)</label>
-                            <textarea data-field="description" class="edit-input mt-0.5 block w-full text-sm rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-gray-700" rows="2" placeholder="このリンクの簡単な説明（編集中のみ表示）">${escapeHTML(link.description || '')}</textarea>
+                            <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 mono-font">DESCRIPTION</label>
+                            <textarea data-field="description" class="edit-input mt-0.5 block w-full text-sm rounded-lg border-gray-300 dark:border-slate-600 shadow-sm focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 bg-white/50 dark:bg-slate-700/50" rows="2" placeholder="このリンクの簡単な説明（編集中のみ表示）">${escapeHTML(link.description || '')}</textarea>
                         </div>
                     </div>
-                    
-                    <div class="flex justify-end gap-2 mt-4">
-                        <button class="btn-delete p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-red-100 dark:hover:bg-red-900 hover:text-red-600 dark:hover:text-red-400 transition-colors" title="削除">
+
+                    <div class="flex justify-end gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-slate-700/50">
+                        <button class="btn-delete p-2.5 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 transition-colors" title="削除">
                             ${icons.delete}
                         </button>
                     </div>
                 </div>
             `;
 
-            // 表示モードUI
-            const emojiHTML = link.emoji ? `<span class="text-2xl mr-3">${escapeHTML(link.emoji)}</span>` : '';
+            // 表示モード UI
+            const textColor = '#374151'; // 常に黒系（gray-700）
+            const titleColor = getTitleColorForCardColor(color);
+            const emojiHTML = link.emoji ? `<span class="text-3xl mr-3">${escapeHTML(link.emoji)}</span>` : '';
             const viewModeUI = `
-                <a href="${escapeHTML(link.url)}" target="_blank" rel="noopener noreferrer" class="block p-5 h-full group">
-                    <div class="flex items-center">
+                <a href="${escapeHTML(link.url)}" target="_blank" rel="noopener noreferrer" class="block p-6 h-full group">
+                    <div class="flex items-center mb-2">
                         ${emojiHTML}
-                        <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-200 group-hover:underline truncate" style="color: ${escapeHTML(color)}">
+                        <h3 class="text-xl font-bold truncate" style="color: ${titleColor}">
                             ${escapeHTML(link.name)}
                         </h3>
                     </div>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-2 truncate ${link.emoji ? 'ml-10' : ''}">
+                    <p class="text-xs mono-font truncate ${link.emoji ? 'ml-12' : ''}" style="color: ${textColor}">
                         ${escapeHTML(link.url)}
                     </p>
                 </a>
-                <div class="absolute bottom-3 right-3">
-                    <button class="btn-copy p-2 rounded-lg text-gray-400 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300 transition-colors" title="リンクをコピー">
+                <div class="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button class="btn-copy p-2.5 rounded-lg text-gray-400 dark:text-gray-500 hover:bg-cyan-100 dark:hover:bg-cyan-900/40 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors" title="リンクをコピー">
                         ${icons.copy}
                     </button>
                 </div>
@@ -733,7 +884,7 @@
         function setupLinkCardEventListeners() {
             document.querySelectorAll('.link-card').forEach(card => {
                 const id = card.dataset.id;
-                
+
                 if (state.editMode) {
                     // 編集モードのイベント
                     const inputs = card.querySelectorAll('.edit-input');
@@ -776,7 +927,7 @@
 
         function toggleEditMode() {
             state.editMode = !state.editMode;
-            
+
             $.toggleEditText.textContent = state.editMode ? '設定完了' : '設定モード';
             $.iconSettings.classList.toggle('hidden', state.editMode);
             $.iconClose.classList.toggle('hidden', !state.editMode);
@@ -786,14 +937,14 @@
             $.addCardContainer.classList.toggle('hidden', !state.editMode);
 
             if (state.editMode) {
-                $.toggleEditModeBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
-                $.toggleEditModeBtn.classList.add('bg-gray-700', 'hover:bg-gray-600');
+                $.toggleEditModeBtn.classList.remove('from-cyan-600', 'to-teal-600', 'hover:from-cyan-500', 'hover:to-teal-500');
+                $.toggleEditModeBtn.classList.add('from-slate-600', 'to-slate-700', 'hover:from-slate-500', 'hover:to-slate-600');
                 state.originalLinks = JSON.parse(JSON.stringify(state.links));
             } else {
-                $.toggleEditModeBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
-                $.toggleEditModeBtn.classList.remove('bg-gray-700', 'hover:bg-gray-600');
+                $.toggleEditModeBtn.classList.add('from-cyan-600', 'to-teal-600', 'hover:from-cyan-500', 'hover:to-teal-500');
+                $.toggleEditModeBtn.classList.remove('from-slate-600', 'to-slate-700', 'hover:from-slate-500', 'hover:to-slate-600');
             }
-            
+
             render();
         }
 
@@ -801,7 +952,7 @@
             const newLink = {
                 id: 'id-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
                 name: "新しいリンク",
-                url: "http://example.com",
+                url: "https://example.com",
                 emoji: "✨",
                 color: state.defaultColor,
                 description: "",
@@ -809,12 +960,12 @@
 
             state.links.unshift(newLink);
             render();
-            
+
             const newCardElement = document.querySelector(`[data-id="${newLink.id}"]`);
             if (newCardElement) {
                 newCardElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
-            
+
             showToast('新しいカードをリストの先頭に追加しました', 'info');
         }
 
@@ -825,7 +976,7 @@
                 const newLinks = newOrder.map(id => state.links.find(link => link.id === id));
                 state.links = newLinks.filter(Boolean);
             }
-            
+
             const success = await postLinks(state.links);
             if (success) {
                 toggleEditMode();
@@ -841,8 +992,6 @@
 
         function handleDeleteLink(id) {
             const link = state.links.find(l => l.id === id);
-            // confirm() はCanvas環境では使えない可能性があるため、簡易的な確認とします。
-            // 本番環境ではカスタムモーダルを推奨します。
             const confirmed = window.confirm(`「${link.emoji || ''} ${link.name}」を削除しますか？`);
             if (confirmed) {
                 state.links = state.links.filter(l => l.id !== id);
@@ -863,10 +1012,9 @@
             document.body.appendChild(textarea);
             textarea.focus();
             textarea.select();
-            
+
             let success = false;
             try {
-                // execCommandは非推奨ですが、Canvas iframeの制限のためこちらを使用します
                 success = document.execCommand('copy');
             } catch (err) {
                 console.error('Copy failed:', err);
@@ -874,7 +1022,7 @@
             }
 
             document.body.removeChild(textarea);
-            
+
             if (success) {
                 showToast('コピーしました!', 'success');
                 const originalIcon = button.innerHTML;
@@ -887,7 +1035,7 @@
             }
         }
 
-        // --- ★ 修正: 絵文字ピッカー関連 ---
+        // --- 絵文字ピッカー関連 ---
 
         function renderEmojiPicker() {
             $.emojiPickerGrid.innerHTML = '';
@@ -896,28 +1044,28 @@
             let filteredEmojis;
 
             if (query) {
-                // 検索時: カテゴリを無視して全件検索
+                // 検索時：カテゴリを無視して全件検索
                 filteredEmojis = emojiPickerData.filter(emoji => {
-                    return emoji.e.includes(query) || 
+                    return emoji.e.includes(query) ||
                            emoji.k.some(k => k.toLowerCase().includes(query));
                 });
             } else {
-                // 通常時: 現在のカテゴリでフィルタリング
+                // 通常時：現在のカテゴリでフィルタリング
                 filteredEmojis = emojiPickerData.filter(emoji => emoji.c === state.currentEmojiCategory);
             }
 
             if (filteredEmojis.length === 0) {
-                $.emojiPickerGrid.innerHTML = `<p class="col-span-7 sm:col-span-8 text-center text-gray-500 dark:text-gray-400">見つかりません</p>`;
+                $.emojiPickerGrid.innerHTML = `<p class="col-span-7 sm:col-span-8 text-center text-gray-500 dark:text-gray-400 py-8">見つかりません</p>`;
                 return;
             }
 
             filteredEmojis.forEach(emoji => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
-                btn.className = 'emoji-btn text-2xl p-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500';
+                btn.className = 'emoji-btn text-2xl p-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-900/30';
                 btn.textContent = emoji.e;
                 btn.setAttribute('role', 'gridcell');
-                btn.setAttribute('aria-label', emoji.k[0]); // ラベル（例: 笑顔）
+                btn.setAttribute('aria-label', emoji.k[0]);
                 btn.addEventListener('click', () => {
                     selectEmoji(emoji.e);
                 });
@@ -930,17 +1078,17 @@
             Object.keys(emojiCategories).forEach(key => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
-                btn.className = 'emoji-tab-btn px-3 py-1.5 rounded-md text-sm font-medium';
-                btn.textContent = emojiCategories[key]; // 例: "顔"
-                btn.dataset.category = key; // 例: "smileys"
+                btn.className = 'emoji-tab-btn px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap';
+                btn.textContent = emojiCategories[key];
+                btn.dataset.category = key;
                 btn.setAttribute('role', 'tab');
                 btn.setAttribute('aria-selected', state.currentEmojiCategory === key);
 
                 btn.addEventListener('click', () => {
                     state.currentEmojiCategory = key;
-                    $.emojiSearchInput.value = ''; // タブ切り替え時は検索をリセット
-                    renderEmojiTabs(); // タブの選択状態を更新
-                    renderEmojiPicker(); // グリッドを更新
+                    $.emojiSearchInput.value = '';
+                    renderEmojiTabs();
+                    renderEmojiPicker();
                 });
                 $.emojiPickerTabs.appendChild(btn);
             });
@@ -949,12 +1097,12 @@
         function openEmojiPicker(targetInput) {
             if (!state.editMode) return;
             state.currentEmojiInput = targetInput;
-            state.currentEmojiCategory = 'smileys'; // デフォルトカテゴリ
-            
+            state.currentEmojiCategory = 'smileys';
+
             $.emojiSearchInput.value = '';
-            renderEmojiTabs(); // タブを描画
-            renderEmojiPicker(); // 絵文字グリッドを描画
-            
+            renderEmojiTabs();
+            renderEmojiPicker();
+
             $.emojiPickerModal.classList.remove('hidden');
             $.emojiSearchInput.focus();
         }
@@ -970,8 +1118,8 @@
         function selectEmoji(emoji) {
             if (state.currentEmojiInput) {
                 state.currentEmojiInput.value = emoji;
-                
-                // 変更をstateに即時反映
+
+                // 変更を state に即時反映
                 const id = state.currentEmojiInput.closest('.link-card').dataset.id;
                 const link = state.links.find(l => l.id === id);
                 if (link) {
@@ -990,7 +1138,7 @@
                     state.sortableInstance.destroy();
                 }
                 state.sortableInstance = Sortable.create($.linksContainer, {
-                    animation: 150,
+                    animation: 200,
                     handle: '.drag-handle',
                     ghostClass: 'sortable-ghost',
                     chosenClass: 'sortable-chosen',
@@ -1005,16 +1153,16 @@
 
         function showToast(message, type = 'info') {
             const colors = {
-                info: 'bg-blue-500',
-                success: 'bg-green-500',
-                error: 'bg-red-500',
+                info: 'bg-gradient-to-r from-cyan-600 to-teal-600',
+                success: 'bg-gradient-to-r from-green-600 to-emerald-600',
+                error: 'bg-gradient-to-r from-red-600 to-rose-600',
             };
             const toast = document.createElement('div');
-            toast.className = `toast-message toast-enter ${colors[type]} text-white px-4 py-2 rounded-lg shadow-md`;
+            toast.className = `toast-message toast-enter text-white px-5 py-3 rounded-xl shadow-lg font-medium ${colors[type]}`;
             toast.textContent = message;
-            
+
             $.toastContainer.appendChild(toast);
-            
+
             requestAnimationFrame(() => {
                 toast.classList.remove('toast-enter');
             });
@@ -1042,23 +1190,46 @@
             });
         }
 
+        // --- 時計機能 ---
+
+        function updateDigitalClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const date = now.getMonth() + 1 + '/' + now.getDate();
+
+            const hoursEl = document.getElementById('digital-clock-hours');
+            const minutesEl = document.getElementById('digital-clock-minutes');
+            const secondsEl = document.getElementById('digital-clock-seconds');
+            const dateEl = document.getElementById('digital-date');
+
+            if (hoursEl) hoursEl.textContent = hours;
+            if (minutesEl) minutesEl.textContent = minutes;
+            if (secondsEl) secondsEl.textContent = seconds;
+            if (dateEl) dateEl.textContent = date;
+        }
+
         // --- 初期化 ---
 
         async function init() {
-            // メインのイベントリスナー
             $.toggleEditModeBtn.addEventListener('click', toggleEditMode);
             $.addNewCardBtn.addEventListener('click', handleAddNewCard);
             $.saveChangesBtn.addEventListener('click', handleSaveChanges);
             $.cancelChangesBtn.addEventListener('click', handleCancelChanges);
 
             // 絵文字ピッカーのイベントリスナー
-            $.emojiSearchInput.addEventListener('input', renderEmojiPicker); // 引数なしで呼び出す
+            $.emojiSearchInput.addEventListener('input', renderEmojiPicker);
             // モーダルの外側をクリックしたら閉じる
             $.emojiPickerModal.addEventListener('click', (e) => {
                 if (e.target === $.emojiPickerModal) {
                     closeEmojiPicker();
                 }
             });
+
+            // 時計の初期更新と每秒更新
+            updateDigitalClock();
+            setInterval(updateDigitalClock, 1000);
 
             // データをロードして初回描画
             await fetchLinks();

@@ -24,16 +24,8 @@
     "id": "id-1771567430124-nysfqhgwt",
     "name": "ProxyServer",
     "url": "http://192.168.0.4:6060/ui",
-    "color": "#4d2505",
-    "emoji": "🔨"
-  },
-  {
-    "id": "id-1765017370343-0klaj4txi",
-    "name": "Whoogle",
-    "url": "http://192.168.0.4:5000",
-    "color": "#11791d",
-    "description": "/searxng/search?q=\u003cquery\u003e",
-    "emoji": "⛺️"
+    "color": "#755280",
+    "emoji": "😈"
   },
   {
     "id": "id-1762195853793-slb7vgams",
@@ -42,5 +34,13 @@
     "color": "#bf3636",
     "description": "APIのエンドポイント",
     "emoji": "🔥"
+  },
+  {
+    "id": "id-1765017370343-0klaj4txi",
+    "name": "Whoogle",
+    "url": "http://192.168.0.4:5000",
+    "color": "#11791d",
+    "description": "/searxng/search?q=\u003cquery\u003e",
+    "emoji": "⛺️"
   }
 ]

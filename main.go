@@ -21,7 +21,7 @@ type Link struct {
 
 var (
 	// データファイルのパス。コンテナ内での使用を想定
-	dataPath = "/data"
+	dataPath = "./data"
 	dataFile = filepath.Join(dataPath, "links.json")
 	mutex    = &sync.Mutex{}
 )
