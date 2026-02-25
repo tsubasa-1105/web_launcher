@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Launcher</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' fill='%234f46e5'%3E%3Crect x='10' y='10' width='35' height='35' rx='8' /%3E%3Crect x='55' y='10' width='35' height='35' rx='8' /%3E%3Crect x='10' y='55' width='35' height='35' rx='8' /%3E%3Crect x='55' y='55' width='35' height='35' rx='8' /%3E%3C/svg%3E">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Sortable.js CDN (ドラッグ＆ドロップ用) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <style>
+        /* OSのダークモード設定に追従 */
+        :root {
+            color-scheme: light dark;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Sortable.js のドラッグ中スタイル */
+        .sortable-ghost {
+            opacity: 0.4;
+            background-color: #4f46e5; /* indigo-600 */
+        }
+        .sortable-chosen {
+            cursor: grabbing;
+        }
+        /* メッセージ表示用のトランジション */
+        .toast-message {
+            transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+        }
+        .toast-enter {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        .toast-leave {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        /* カスタムカラーピッカーのスタイル */
+        input[type="color"] {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            background-color: transparent;
+        }
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        input[type="color"]::-webkit-color-swatch {
+            border: 2px solid #9ca3af; /* gray-400 */
+            border-radius: 8px;
+        }
+        .dark input[type="color"]::-webkit-color-swatch {
+            border-color: #4b5563; /* gray-600 */
+        }
+        /* Firefox用 */
+        input[type="color"]::-moz-color-swatch {
+            border: 2px solid #9ca3af; /* gray-400 */
+            border-radius: 8px;
+        }
+        .dark input[type="color"]::-moz-color-swatch {
+            border-color: #4b5563; /* gray-600 */
+        }
+        /* 絵文字ピッカーのボタンスタイル */
+        .emoji-btn {
+            transition: transform 0.1s ease-out, background-color 0.1s;
+        }
+        .emoji-btn:hover {
+            transform: scale(1.1);
+            background-color: rgba(128, 128, 128, 0.1);
+        }
+        /* 絵文字ピッカーのカテゴリタブ */
+        .emoji-tab-btn {
+            transition: background-color 0.1s, color 0.1s;
+        }
+        .emoji-tab-btn[aria-selected="true"] {
+            background-color: #4f46e5; /* indigo-600 */
+            color: white;
+        }
+        .emoji-tab-btn[aria-selected="false"] {
+            background-color: transparent;
+            color: #6b7280; /* gray-500 */
+        }
+        .dark .emoji-tab-btn[aria-selected="false"] {
+            color: #d1d5db; /* gray-300 */
+        }
+        .dark .emoji-tab-btn[aria-selected="true"] {
+            background-color: #4f46e5; /* indigo-600 */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen antialiased transition-colors duration-300">
+
+    <!-- メインコンテナ -->
+    <!-- ★ 修正: max-w-4xl から max-w-5xl に変更し、2列表示のスペースを確保 -->
+    <div class="container mx-auto max-w-5xl p-4 sm:p-8">
+        
+        <!-- ヘッダーと設定トグル -->
+        <header class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200">
+                Web Launcher
+            </h1>
+            
+            <div class="flex items-center gap-3">
+                <!-- 編集モード時のアクションボタン (初期非表示) -->
+                <div id="edit-mode-actions" class="hidden flex items-center gap-3">
+                    <button id="cancel-changes" class="px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium hover:bg-gray-300 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400">
+                        キャンセル
+                    </button>
+                    <button id="save-changes" class="px-4 py-2 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        保存
+                    </button>
+                </div>
+
+                <!-- 設定モードトグルボタン -->
+                <button id="toggle-edit-mode" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-all">
+                    <!-- Icon: Settings (Edit Mode OFF) -->
+                    <svg id="icon-settings" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0M3.75 18H7.5m3-6h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0M3.75 12H7.5" />
+                    </svg>
+                    <!-- Icon: Close (Edit Mode ON) -->
+                    <svg id="icon-close" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 hidden">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    <span id="toggle-edit-text">設定モード</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- リンク一覧 -->
+        <main>
+            <!-- 新規追加ボタン (設定モード時のみ表示) -->
+            <div id="add-card-container" class="hidden mb-6">
+                <button id="add-new-card-btn" class="w-full py-4 px-6 border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg text-gray-500 dark:text-gray-400 hover:border-indigo-500 hover:text-indigo-500 transition-colors flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                    </svg>
+                    <span>新しいカードを追加</span>
+                </button>
+            </div>
+
+            <!-- ★ 修正: lg:grid-cols-3 を削除し、md:grid-cols-2 (中画面以上で2列) に変更 -->
+            <div id="links-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- ローディングスピナー (初回読み込み時) -->
+                <!-- ★ 修正: lg:col-span-3 を削除 -->
+                <div id="loading-spinner" class="md:col-span-2 text-center py-12">
+                    <svg class="animate-spin h-8 w-8 text-indigo-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <p class="mt-2 text-gray-500 dark:text-gray-400">Loading...</p>
+                </div>
+            </div>
+            
+            <!-- データが空の場合の表示 (JSで制御) -->
+            <div id="empty-state" class="hidden text-center py-16 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12 mx-auto text-gray-400">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                </svg>
+                <h3 class="mt-4 text-lg font-medium text-gray-800 dark:text-gray-200">リンクがありません</h3>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">「設定モード」から新しいリンクを追加してください。</p>
+            </div>
+        </main>
+
+        <!-- 設定モード UI (ヒントのみ) -->
+        <footer id="edit-controls" class="hidden mt-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+            <!-- リンクの追加フォームは削除されました -->
+            <!-- 保存/キャンセルボタンはヘッダーに移動しました -->
+            <p class="text-sm text-gray-500 dark:text-gray-400 text-center">
+                ヒント: カードをドラッグ＆ドロップして並び替えできます。
+            </p>
+        </footer>
+    </div>
+
+    <!-- メッセージ表示エリア (トースト) -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 space-y-2">
+        <!-- JSでメッセージが挿入されます -->
+    </div>
+
+    <!-- 絵文字ピッカー (モーダル) -->
+    <div id="emoji-picker-modal" class="hidden fixed inset-0 z-40 bg-black/30 dark:bg-black/50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="emoji-picker-title">
+        <div id="emoji-picker-content" class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-sm max-h-[70vh] flex flex-col">
+            <!-- ヘッダーと検索バー -->
+            <div class="p-3 border-b border-gray-200 dark:border-gray-700">
+                <h3 id="emoji-picker-title" class="text-lg font-medium text-center mb-2">絵文字を選択</h3>
+                <input id="emoji-search-input" type="text" placeholder="絵文字を検索 (例: 笑顔, dog, ...)" class="w-full px-3 py-2 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+            </div>
+            
+            <!-- カテゴリタブ -->
+            <div id="emoji-picker-tabs" class="p-2 flex flex-nowrap overflow-x-auto gap-1 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700" role="tablist">
+                <!-- JSでタブが挿入されます -->
+            </div>
+
+            <!-- 絵文字グリッド -->
+            <!-- ★ 修正: grid-cols-8 から grid-cols-7 sm:grid-cols-8 に変更 (モバイル対応) -->
+            <div id="emoji-picker-grid" class="flex-1 overflow-y-auto p-3 grid grid-cols-7 sm:grid-cols-8 gap-1" role="grid">
+                <!-- JSで絵文字が挿入されます -->
+            </div>
+        </div>
+    </div>
+
+    <!-- JS (SPAロジック) -->
+    <script type="module">
+        // SVGアイコン
+        const icons = {
+            copy: `
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.378h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.08-3.32-7.4-7.4-7.4S4.125 7.17 4.125 11.25v6.075c0 .621.504 1.125 1.125 1.125H6.75v-1.091c0-.67.204-1.3.562-1.841m7.5 0V11.25c0-1.556-1.26-2.816-2.816-2.816M9 11.25v1.5a2.816 2.816 0 002.816 2.816m0 0H12m2.25-4.5v-1.5c0-.67-.204-1.3-.562-1.841m-6.376 0c-.358.54-.562 1.17-.562 1.841v1.5m0 0V11.25c0-1.556 1.26-2.816 2.816-2.816M9 11.25v1.5a2.816 2.816 0 002.816 2.816m0 0H12m2.25-4.5v-1.5c0-.67-.204-1.3-.562-1.841m-6.376 0c-.358.54-.562 1.17-.562 1.841v1.5m0 0V11.25c0-1.556 1.26-2.816 2.816-2.816M9 11.25v1.5a2.816 2.816 0 002.816 2.816m0 0H12" />
+                </svg>
+            `,
+            check: `
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-green-500">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+            `,
+            handle: `
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-gray-400 dark:text-gray-500 cursor-move">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9h16.5m-16.5 6.75h16.5" />
+                </svg>
+            `,
+            delete: `
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12.502 0c-.342.052-.682.107-1.022.166m11.48 0A48.067 48.067 0 0012 5.109C8.742 5.109 5.89 5.426 3.27 5.79m14.456 0L12 5.109m0 0L9.26 5.79M12 5.109l.006.007l.006-.007M12 5.109l-.006.007l-.006-.007" />
+                </svg>
+            `
+        };
+
+// 拡張: 絵文字データ (カテゴリとキーワード付き)
+        const emojiCategories = {
+            smileys: "顔",
+            animals: "動物",
+            travel: "場所",
+            food: "食べ物",
+            objects: "モノ",
+            symbols: "記号",
+        };
+
+        const emojiPickerData = [
+            // 顔 (Smileys & Emotion)
+            { e: "😀", k: ["笑顔", "顔", "smile", "face"], c: "smileys" },
+            { e: "😃", k: ["大笑い", "happy"], c: "smileys" },
+            { e: "😄", k: ["にこやか", "laugh"], c: "smileys" },
+            { e: "😁", k: ["笑顔", "grin"], c: "smileys" },
+            { e: "😆", k: ["爆笑", "laughing"], c: "smileys" },
+            { e: "😅", k: ["汗", "あせ", "sweat"], c: "smileys" },
+            { e: "😂", k: ["笑い泣き", "涙", "joy", "tear"], c: "smileys" },
+            { e: "🤣", k: ["笑い転げる", "rofl"], c: "smileys" },
+            { e: "🥲", k: ["嬉し泣き", "smile", "tear"], c: "smileys" },
+            { e: "🥹", k: ["感動", "涙目", "pleading"], c: "smileys" },
+            { e: "😊", k: ["微笑み", "blush"], c: "smileys" },
+            { e: "😇", k: ["天使", "angel"], c: "smileys" },
+            { e: "🥰", k: ["大好き", "ハート", "love", "cute"], c: "smileys" },
+            { e: "😍", k: ["ハート目", "love", "heart eyes"], c: "smileys" },
+            { e: "🤩", k: ["スター", "きらきら", "star"], c: "smileys" },
+            { e: "😘", k: ["キス", "kiss"], c: "smileys" },
+            { e: "😋", k: ["おいしい", "ペロ", "yummy"], c: "smileys" },
+            { e: "😛", k: ["舌出し", "tongue"], c: "smileys" },
+            { e: "😜", k: ["ウインク", "wink"], c: "smileys" },
+            { e: "🤪", k: ["変顔", "crazy"], c: "smileys" },
+            { e: "🤨", k: ["疑い", "suspect"], c: "smileys" },
+            { e: "🧐", k: ["モノクル", "analyze"], c: "smileys" },
+            { e: "🤓", k: ["メガネ", "nerd"], c: "smileys" },
+            { e: "😎", k: ["サングラス", "cool"], c: "smileys" },
+            { e: "🥸", k: ["変装", "disguise"], c: "smileys" },
+            { e: "🥳", k: ["パーティ", "お祝い", "party"], c: "smileys" },
+            { e: "🤯", k: ["爆発", "びっくり", "mind blown"], c: "smileys" },
+            { e: "😳", k: ["照れる", "赤面", "flushed"], c: "smileys" },
+            { e: "🥺", k: ["お願い", "うるうる", "please"], c: "smileys" },
+            { e: "🫠", k: ["溶ける", "とける", "melting"], c: "smileys" },
+            { e: "🫢", k: ["あっ", "手", "omg"], c: "smileys" },
+            { e: "🫣", k: ["覗き見", "peek"], c: "smileys" },
+            { e: "🤔", k: ["考え中", "think"], c: "smileys" },
+            { e: "🤫", k: ["しー", "quiet"], c: "smileys" },
+            { e: "🤐", k: ["ジッパー", "zip"], c: "smileys" },
+            { e: "😐", k: ["真顔", "neutral"], c: "smileys" },
+            { e: "😑", k: ["無表情", "expressionless"], c: "smileys" },
+            { e: "😶", k: ["無言", "no mouth"], c: "smileys" },
+            { e: "😮", k: ["おどろき", "surprised"], c: "smileys" },
+            { e: "🤤", k: ["よだれ", "drooling"], c: "smileys" },
+            { e: "😴", k: ["眠い", "sleep"], c: "smileys" },
+            { e: "🥱", k: ["あくび", "yawn"], c: "smileys" },
+            { e: "😪", k: ["眠い", "sleepy"], c: "smileys" },
+            { e: "😵", k: ["めまい", "dizzy"], c: "smileys" },
+            { e: "🤢", k: ["吐き気", "nauseated"], c: "smileys" },
+            { e: "🤧", k: ["くしゃみ", "sneeze"], c: "smileys" },
+            { e: "😷", k: ["マスク", "mask"], c: "smileys" },
+            { e: "🤒", k: ["熱", "fever"], c: "smileys" },
+            { e: "🤕", k: ["怪我", "bandage"], c: "smileys" },
+            { e: "😥", k: ["悲しい", "sad", "disappointed"], c: "smileys" },
+            { e: "😭", k: ["泣き", "号泣", "cry", "sad"], c: "smileys" },
+            { e: "😱", k: ["恐怖", "scream"], c: "smileys" },
+            { e: "😡", k: ["怒り", "angry", "rage"], c: "smileys" },
+            { e: "😠", k: ["怒", "mad"], c: "smileys" },
+            { e: "😈", k: ["悪魔", "devil"], c: "smileys" },
+            { e: "👻", k: ["おばけ", "ghost"], c: "smileys" },
+            { e: "🎃", k: ["かぼちゃ", "halloween"], c: "smileys" },
+            { e: "😺", k: ["猫", "笑顔", "cat smile"], c: "smileys" },
+            { e: "😻", k: ["猫", "ハート", "cat heart"], c: "smileys" },
+            { e: "😿", k: ["猫", "泣き", "cat cry"], c: "smileys" },
+
+            // 動物・自然 (Animals & Nature)
+            { e: "🐶", k: ["犬", "dog"], c: "animals" },
+            { e: "🐱", k: ["猫", "cat"], c: "animals" },
+            { e: "🐭", k: ["ネズミ", "mouse"], c: "animals" },
+            { e: "🐹", k: ["ハムスター", "hamster"], c: "animals" },
+            { e: "🐰", k: ["ウサギ", "rabbit"], c: "animals" },
+            { e: "🦊", k: ["キツネ", "fox"], c: "animals" },
+            { e: "🐻", k: ["熊", "bear"], c: "animals" },
+            { e: "🐼", k: ["パンダ", "panda"], c: "animals" },
+            { e: "🐻‍❄️", k: ["シロクマ", "polar bear"], c: "animals" },
+            { e: "🐨", k: ["コアラ", "koala"], c: "animals" },
+            { e: "🐯", k: ["トラ", "tiger"], c: "animals" },
+            { e: "🦁", k: ["ライオン", "lion"], c: "animals" },
+            { e: "🐮", k: ["牛", "cow"], c: "animals" },
+            { e: "🐷", k: ["豚", "pig"], c: "animals" },
+            { e: "🐸", k: ["カエル", "frog"], c: "animals" },
+            { e: "🐵", k: ["猿", "monkey"], c: "animals" },
+            { e: "🐔", k: ["ニワトリ", "chicken"], c: "animals" },
+            { e: "🐧", k: ["ペンギン", "penguin"], c: "animals" },
+            { e: "🐦", k: ["鳥", "bird"], c: "animals" },
+            { e: "🐤", k: ["ひよこ", "chick"], c: "animals" },
+            { e: "🦋", k: ["蝶", "butterfly"], c: "animals" },
+            { e: "🐝", k: ["蜂", "bee"], c: "animals" },
+            { e: "🐞", k: ["てんとう虫", "ladybug"], c: "animals" },
+            { e: "🐙", k: ["タコ", "octopus"], c: "animals" },
+            { e: "🐠", k: ["魚", "fish"], c: "animals" },
+            { e: "🐬", k: ["イルカ", "dolphin"], c: "animals" },
+            { e: "🐳", k: ["クジラ", "whale"], c: "animals" },
+            { e: "🦈", k: ["サメ", "shark"], c: "animals" },
+            { e: "🌸", k: ["桜", "cherry blossom", "flower"], c: "animals" },
+            { e: "💮", k: ["はなまる", "flower"], c: "animals" },
+            { e: "🌹", k: ["バラ", "rose"], c: "animals" },
+            { e: "🌻", k: ["ひまわり", "sunflower"], c: "animals" },
+            { e: "🌼", k: ["花", "blossom"], c: "animals" },
+            { e: "🌷", k: ["チューリップ", "tulip"], c: "animals" },
+            { e: "🌱", k: ["芽", "seedling"], c: "animals" },
+            { e: "🪴", k: ["観葉植物", "potted plant"], c: "animals" },
+            { e: "🌲", k: ["木", "tree"], c: "animals" },
+            { e: "🌳", k: ["木", "tree"], c: "animals" },
+            { e: "🌴", k: ["ヤシの木", "palm tree"], c: "animals" },
+            { e: "🍁", k: ["紅葉", "もみじ", "maple", "leaf"], c: "animals" },
+            { e: "🍂", k: ["落ち葉", "fallen leaf"], c: "animals" },
+            { e: "🍀", k: ["クローバー", "clover"], c: "animals" },
+            { e: "🍄", k: ["キノコ", "mushroom"], c: "animals" },
+            { e: "🌈", k: ["虹", "rainbow"], c: "animals" },
+            { e: "☀️", k: ["太陽", "晴れ", "sun"], c: "animals" },
+            { e: "🌙", k: ["月", "moon"], c: "animals" },
+            { e: "⭐️", k: ["星", "star"], c: "animals" },
+            { e: "❄️", k: ["雪", "snow"], c: "animals" },
+            { e: "☁️", k: ["雲", "くもり", "cloud"], c: "animals" },
+            { e: "🌊", k: ["波", "wave"], c: "animals" },
+
+            // 旅行・場所 (Travel & Places)
+            { e: "🚗", k: ["車", "car"], c: "travel" },
+            { e: "🚕", k: ["タクシー", "taxi"], c: "travel" },
+            { e: "🚌", k: ["バス", "bus"], c: "travel" },
+            { e: "🚑", k: ["救急車", "ambulance"], c: "travel" },
+            { e: "🚓", k: ["パトカー", "police car"], c: "travel" },
+            { e: "🚃", k: ["電車", "train"], c: "travel" },
+            { e: "🚅", k: ["新幹線", "bullet train"], c: "travel" },
+            { e: "✈️", k: ["飛行機", "airplane", "plane"], c: "travel" },
+            { e: "🚀", k: ["ロケット", "rocket"], c: "travel" },
+            { e: "🚢", k: ["船", "ship"], c: "travel" },
+            { e: "🚲", k: ["自転車", "bicycle"], c: "travel" },
+            { e: "🛵", k: ["スクーター", "scooter"], c: "travel" },
+            { e: "🏠", k: ["家", "house"], c: "travel" },
+            { e: "🏡", k: ["家", "house with garden"], c: "travel" },
+            { e: "🏢", k: ["ビル", "office"], c: "travel" },
+            { e: "🏥", k: ["病院", "hospital"], c: "travel" },
+            { e: "🏪", k: ["コンビニ", "convenience store"], c: "travel" },
+            { e: "🏫", k: ["学校", "school"], c: "travel" },
+            { e: "🗼", k: ["東京タワー", "tokyo tower"], c: "travel" },
+            { e: "🗽", k: ["自由の女神", "statue of liberty"], c: "travel" },
+            { e: "🏰", k: ["城", "castle"], c: "travel" },
+            { e: "🏯", k: ["城", "japanese castle"], c: "travel" },
+            { e: "⛩️", k: ["鳥居", "shrine"], c: "travel" },
+            { e: "🗻", k: ["富士山", "fuji", "mountain"], c: "travel" },
+            { e: "🏖️", k: ["ビーチ", "beach"], c: "travel" },
+            { e: "🏝️", k: ["島", "island"], c: "travel" },
+            { e: "🏞️", k: ["公園", "park"], c: "travel" },
+            { e: "⛺️", k: ["テント", "tent"], c: "travel" },
+            { e: "♨️", k: ["温泉", "hot springs"], c: "travel" },
+            { e: "🌍", k: ["地球", "earth", "world"], c: "travel" },
+
+            // 食べ物 (Food)
+            { e: "🍔", k: ["ハンバーガー", "burger"], c: "food" },
+            { e: "🍟", k: ["ポテト", "fries"], c: "food" },
+            { e: "🍕", k: ["ピザ", "pizza"], c: "food" },
+            { e: "🍣", k: ["寿司", "sushi"], c: "food" },
+            { e: "🍙", k: ["おにぎり", "rice ball"], c: "food" },
+            { e: "🍜", k: ["ラーメン", "ramen", "noodle"], c: "food" },
+            { e: "🍛", k: ["カレー", "curry"], c: "food" },
+            { e: "🍝", k: ["パスタ", "spaghetti"], c: "food" },
+            { e: "🍰", k: ["ケーキ", "cake"], c: "food" },
+            { e: "🎂", k: ["誕生日ケーキ", "birthday cake"], c: "food" },
+            { e: "🧁", k: ["カップケーキ", "cupcake"], c: "food" },
+            { e: "🍩", k: ["ドーナツ", "donut"], c: "food" },
+            { e: "🍪", k: ["クッキー", "cookie"], c: "food" },
+            { e: "🍫", k: ["チョコ", "chocolate"], c: "food" },
+            { e: "🍬", k: ["飴", "candy"], c: "food" },
+            { e: "🍭", k: ["ロリポップ", "lollipop"], c: "food" },
+            { e: "🍮", k: ["プリン", "pudding"], c: "food" },
+            { e: "🍦", k: ["アイス", "ice cream"], c: "food" },
+            { e: "🍧", k: ["かき氷", "shaved ice"], c: "food" },
+            { e: "🍿", k: ["ポップコーン", "popcorn"], c: "food" },
+            { e: "🥐", k: ["クロワッサン", "croissant"], c: "food" },
+            { e: "🍞", k: ["パン", "bread"], c: "food" },
+            { e: "🥞", k: ["パンケーキ", "pancakes"], c: "food" },
+            { e: "🍳", k: ["目玉焼き", "egg"], c: "food" },
+            { e: "🍓", k: ["いちご", "strawberry"], c: "food" },
+            { e: "🍎", k: ["りんご", "apple"], c: "food" },
+            { e: "🍉", k: ["スイカ", "watermelon"], c: "food" },
+            { e: "🍌", k: ["バナナ", "banana"], c: "food" },
+            { e: "🍍", k: ["パイナップル", "pineapple"], c: "food" },
+            { e: "🍑", k: ["桃", "peach"], c: "food" },
+            { e: "🍒", k: ["さくらんぼ", "cherry"], c: "food" },
+            { e: "🍇", k: ["ぶどう", "grape"], c: "food" },
+            { e: "🍵", k: ["お茶", "tea"], c: "food" },
+            { e: "☕️", k: ["コーヒー", "coffee"], c: "food" },
+            { e: "🍶", k: ["酒", "sake"], c: "food" },
+            { e: "🍺", k: ["ビール", "beer"], c: "food" },
+            { e: "🍻", k: ["乾杯", "cheers"], c: "food" },
+            { e: "🥂", k: ["乾杯", "clinking glasses"], c: "food" },
+            { e: "🍷", k: ["ワイン", "wine"], c: "food" },
+            { e: "🍹", k: ["カクテル", "cocktail"], c: "food" },
+
+            // モノ (Objects)
+            { e: "🎉", k: ["パーティ", "お祝い", "party", "popper"], c: "objects" },
+            { e: "🎊", k: ["くす玉", "confetti ball"], c: "objects" },
+            { e: "🥳", k: ["パーティ顔", "party face"], c: "objects" },
+            { e: "🎈", k: ["風船", "balloon"], c: "objects" },
+            { e: "🎁", k: ["プレゼント", "gift"], c: "objects" },
+            { e: "🎀", k: ["リボン", "ribbon"], c: "objects" },
+            { e: "🎯", k: ["ダーツ", "target", "darts"], c: "objects" },
+            { e: "🎮", k: ["ゲーム", "game"], c: "objects" },
+            { e: "🧩", k: ["パズル", "puzzle"], c: "objects" },
+            { e: "🎲", k: ["サイコロ", "dice"], c: "objects" },
+            { e: "🎳", k: ["ボーリング", "bowling"], c: "objects" },
+            { e: "⚽️", k: ["サッカー", "soccer"], c: "objects" },
+            { e: "🏀", k: ["バスケ", "basketball"], c: "objects" },
+            { e: "⚾️", k: ["野球", "baseball"], c: "objects" },
+            { e: "🎾", k: ["テニス", "tennis"], c: "objects" },
+            { e: "🏐", k: ["バレー", "volleyball"], c: "objects" },
+            { e: "🏊", k: ["水泳", "swimming"], c: "objects" },
+            { e: "🏄", k: ["サーフィン", "surfing"], c: "objects" },
+            { e: "🏂", k: ["スノボ", "snowboard"], c: "objects" },
+            { e: "🎿", k: ["スキー", "ski"], c: "objects" },
+            { e: "🎣", k: ["釣り", "fishing"], c: "objects" },
+            { e: "🏕️", k: ["キャンプ", "camping"], c: "objects" },
+            { e: "🎬", k: ["映画", "movie", "clapper"], c: "objects" },
+            { e: "🎤", k: ["マイク", "mic", "karaoke"], c: "objects" },
+            { e: "🎧", k: ["ヘッドホン", "music"], c: "objects" },
+            { e: "🎼", k: ["楽譜", "music"], c: "objects" },
+            { e: "🎹", k: ["ピアノ", "piano"], c: "objects" },
+            { e: "🎸", k: ["ギター", "guitar"], c: "objects" },
+            { e: "🎨", k: ["アート", "art", "palette"], c: "objects" },
+            { e: "🏆", k: ["トロフィー", "trophy"], c: "objects" },
+            { e: "💻", k: ["PC", "computer", "laptop"], c: "objects" },
+            { e: "📱", k: ["スマホ", "mobile", "phone"], c: "objects" },
+            { e: "💡", k: ["アイデア", "電球", "idea", "bulb"], c: "objects" },
+            { e: "💰", k: ["お金", "money", "bag"], c: "objects" },
+            { e: "💎", k: ["ダイヤ", "diamond"], c: "objects" },
+            { e: "👑", k: ["王冠", "crown"], c: "objects" },
+            { e: "💍", k: ["指輪", "ring"], c: "objects" },
+            { e: "💄", k: ["口紅", "lipstick"], c: "objects" },
+            { e: "📚", k: ["本", "book", "study"], c: "objects" },
+            { e: "✏️", k: ["鉛筆", "pencil"], c: "objects" },
+            { e: "📝", k: ["メモ", "memo"], c: "objects" },
+            { e: "📅", k: ["カレンダー", "calendar"], c: "objects" },
+            { e: "🗓️", k: ["カレンダー", "calendar"], c: "objects" },
+            { e: "🕰️", k: ["時計", "clock"], c: "objects" },
+            { e: "⏰", k: ["目覚まし", "alarm"], c: "objects" },
+            { e: "⏳", k: ["砂時計", "hourglass"], c: "objects" },
+            { e: "🔑", k: ["キー", "key"], c: "objects" },
+            { e: "🔒", k: ["鍵", "lock", "secure"], c: "objects" },
+            { e: "🔓", k: ["開錠", "unlock"], c: "objects" },
+            { e: "🔨", k: ["ハンマー", "hammer"], c: "objects" },
+            { e: "🔧", k: ["レンチ", "wrench", "tool"], c: "objects" },
+            { e: "⚙️", k: ["歯車", "gear", "settings"], c: "objects" },
+            { e: "🪄", k: ["魔法の杖", "magic wand"], c: "objects" },
+            { e: "💊", k: ["薬", "pill"], c: "objects" },
+            { e: "💉", k: ["注射", "syringe"], c: "objects" },
+            { e: "🩹", k: ["絆創膏", "bandage"], c: "objects" },
+            { e: "💌", k: ["ラブレター", "love letter"], c: "objects" },
+            { e: "📦", k: ["箱", "package"], c: "objects" },
+            { e: "📺", k: ["テレビ", "tv"], c: "objects" },
+            { e: "📸", k: ["カメラ", "camera"], c: "objects" },
+
+            // 記号 (Symbols)
+            { e: "❤️", k: ["ハート", "赤", "heart", "love"], c: "symbols" },
+            { e: "🧡", k: ["ハート", "オレンジ", "orange heart"], c: "symbols" },
+            { e: "💛", k: ["ハート", "黄", "yellow heart"], c: "symbols" },
+            { e: "💚", k: ["ハート", "緑", "green heart"], c: "symbols" },
+            { e: "💙", k: ["ハート", "青", "blue heart"], c: "symbols" },
+            { e: "💜", k: ["ハート", "紫", "purple heart"], c: "symbols" },
+            { e: "🖤", k: ["ハート", "黒", "black heart"], c: "symbols" },
+            { e: "🤍", k: ["ハート", "白", "white heart"], c: "symbols" },
+            { e: "🤎", k: ["ハート", "茶", "brown heart"], c: "symbols" },
+            { e: "💔", k: ["失恋", "broken heart"], c: "symbols" },
+            { e: "❤️‍🔥", k: ["燃えるハート", "heart on fire"], c: "symbols" },
+            { e: "❤️‍🩹", k: ["絆創膏ハート", "mending heart"], c: "symbols" },
+            { e: "❣️", k: ["感嘆符ハート", "heart exclamation"], c: "symbols" },
+            { e: "💕", k: ["2つのハート", "two hearts"], c: "symbols" },
+            { e: "💞", k: ["回るハート", "revolving hearts"], c: "symbols" },
+            { e: "💓", k: ["鼓動", "beating heart"], c: "symbols" },
+            { e: "💗", k: ["成長", "growing heart"], c: "symbols" },
+            { e: "💖", k: ["キラキラハート", "sparkling heart"], c: "symbols" },
+            { e: "💘", k: ["矢", "heart with arrow"], c: "symbols" },
+            { e: "💝", k: ["リボンハート", "heart with ribbon"], c: "symbols" },
+            { e: "💟", k: ["ハート", "heart decoration"], c: "symbols" },
+            { e: "🔥", k: ["火", "fire", "hot"], c: "symbols" },
+            { e: "✨", k: ["キラキラ", "sparkles"], c: "symbols" },
+            { e: "🌟", k: ["輝く星", "glowing star"], c: "symbols" },
+            { e: "💫", k: ["めまい", "dizzy", "star"], c: "symbols" },
+            { e: "💥", k: ["爆発", "collision", "boom"], c: "symbols" },
+            { e: "💨", k: ["ダッシュ", "dash"], c: "symbols" },
+            { e: "💦", k: ["汗", "sweat", "drops"], c: "symbols" },
+            { e: "💤", k: ["眠り", "zzz", "sleep"], c: "symbols" },
+            { e: "💯", k: ["100点", "100", "perfect"], c: "symbols" },
+            { e: "⭕️", k: ["丸", "まる", "ok", "circle"], c: "symbols" },
+            { e: "❌", k: ["バツ", "ばつ", "no", "cross"], c: "symbols" },
+            { e: "❓", k: ["？", "はてな", "question"], c: "symbols" },
+            { e: "❗️", k: ["！", "びっくり", "exclamation"], c: "symbols" },
+            { e: "✅", k: ["チェック", "check", "mark"], c: "symbols" },
+            { e: "❎", k: ["チェック", "cross mark"], c: "symbols" },
+            { e: "⚠️", k: ["警告", "warning"], c: "symbols" },
+            { e: "➡️", k: ["矢印", "右", "arrow", "right"], c: "symbols" },
+            { e: "⬆️", k: ["矢印", "上", "arrow", "up"], c: "symbols" },
+            { e: "⬇️", k: ["矢印", "下", "arrow", "down"], c: "symbols" },
+        ];
+
+        // アプリケーションの状態
+        const state = {
+            links: [], // サーバーから取得したデータ
+            originalLinks: [], // キャンセル用に保持する元のデータ
+            editMode: false,
+            sortableInstance: null,
+            defaultColor: '#6366f1', // Indigo-600
+            currentEmojiInput: null, // 絵文字ピッカーが対象とする入力欄
+            currentEmojiCategory: 'smileys', // ★追加: 絵文字ピッカーの現在カテゴリ
+        };
+
+        // DOM要素
+        const $ = {
+            linksContainer: document.getElementById('links-container'),
+            loadingSpinner: document.getElementById('loading-spinner'),
+            emptyState: document.getElementById('empty-state'),
+            toggleEditModeBtn: document.getElementById('toggle-edit-mode'),
+            toggleEditText: document.getElementById('toggle-edit-text'),
+            iconSettings: document.getElementById('icon-settings'),
+            iconClose: document.getElementById('icon-close'),
+            editControls: document.getElementById('edit-controls'), // フッター (ヒント用)
+            addCardContainer: document.getElementById('add-card-container'), // 新規追加ボタンのコンテナ
+            addNewCardBtn: document.getElementById('add-new-card-btn'), // 新規追加ボタン
+            editModeActions: document.getElementById('edit-mode-actions'), // ヘッダーの保存/キャンセルコンテナ
+            saveChangesBtn: document.getElementById('save-changes'), // ヘッダーの保存ボタン
+            cancelChangesBtn: document.getElementById('cancel-changes'), // ヘッダーのキャンセルボタン
+            toastContainer: document.getElementById('toast-container'),
+            // 絵文字ピッカー
+            emojiPickerModal: document.getElementById('emoji-picker-modal'),
+            emojiPickerContent: document.getElementById('emoji-picker-content'),
+            emojiSearchInput: document.getElementById('emoji-search-input'),
+            emojiPickerTabs: document.getElementById('emoji-picker-tabs'), // ★追加
+            emojiPickerGrid: document.getElementById('emoji-picker-grid'),
+        };
+
+        // --- API通信 ---
+
+        async function fetchLinks() {
+            try {
+                // ★ 修正: サーバーのAPIを呼び出す
+                const response = await fetch('/api/links');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                
+                state.links = data || []; // nullの場合も考慮
+                state.originalLinks = JSON.parse(JSON.stringify(state.links));
+            } catch (error) {
+                console.error(error);
+                showToast('リンクの読み込みに失敗しました', 'error');
+                state.links = [];
+                state.originalLinks = [];
+            }
+        }
+
+        async function postLinks(linksToSave) {
+            try {
+                // ★ 修正: サーバーのAPIにPOSTリクエストを送る
+                const response = await fetch('/api/links', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(linksToSave),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                // サーバーから返却された保存済みのデータを状態にセット
+                const savedData = await response.json();
+                
+                state.links = savedData || [];
+                state.originalLinks = JSON.parse(JSON.stringify(state.links));
+                showToast('変更を保存しました', 'success');
+                return true;
+            } catch (error) {
+                console.error(error);
+                showToast('保存に失敗しました', 'error');
+                return false;
+            }
+        }
+
+        // --- レンダリング ---
+
+        function render() {
+            $.linksContainer.innerHTML = '';
+            
+            if (state.links.length === 0 && !state.editMode) {
+                $.emptyState.classList.remove('hidden');
+                $.loadingSpinner.classList.add('hidden');
+            } else {
+                 $.emptyState.classList.add('hidden');
+                 $.loadingSpinner.classList.add('hidden');
+            }
+
+            state.links.forEach(link => {
+                const card = createLinkCard(link);
+                $.linksContainer.appendChild(card);
+            });
+
+            setupLinkCardEventListeners();
+            setupSortable();
+        }
+
+        function createLinkCard(link) {
+            const div = document.createElement('div');
+            const color = link.color || state.defaultColor;
+            
+            div.className = `link-card bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 transition-all duration-300 border-l-4 ${state.editMode ? 'shadow-lg' : 'hover:shadow-lg hover:scale-[1.02]'}`;
+            div.style.borderColor = color; // 左ボーダーに色を適用
+            div.dataset.id = link.id;
+
+            // 編集モードUI
+            const editModeUI = `
+                <div class="p-4">
+                    <div class="drag-handle absolute top-2 right-2 p-1 text-gray-400 dark:text-gray-500 cursor-move" title="ドラッグして並び替え">
+                        ${icons.handle}
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <div class="flex gap-3 items-start">
+                            <!-- 色 -->
+                            <div class="flex-shrink-0">
+                                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">色</label>
+                                <input type="color" value="${escapeHTML(color)}" data-field="color" class="edit-input" title="カラーピッカー">
+                            </div>
+                            <!-- 絵文字 -->
+                            <div class="flex-shrink-0 w-16">
+                                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">絵文字</label>
+                                <input type="text" value="${escapeHTML(link.emoji || '')}" data-field="emoji" class="edit-input emoji-input mt-0.5 block w-full text-lg text-center rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-gray-700 py-2 px-3 cursor-pointer" maxlength="4" readonly>
+                            </div>
+                            <!-- 名前 -->
+                            <div class="flex-grow min-w-0">
+                                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">名前</label>
+                                <input type="text" value="${escapeHTML(link.name)}" data-field="name" class="edit-input mt-0.5 block w-full font-semibold rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-gray-700 py-2 px-3">
+                            </div>
+                        </div>
+                        
+                        <!-- URL -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 dark:text-gray-400">URL</label>
+                            <input type="text" value="${escapeHTML(link.url)}" data-field="url" class="edit-input mt-0.5 block w-full text-sm rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-gray-700 py-2 px-3">
+                        </div>
+                        
+                        <!-- 説明 -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 dark:text-gray-400">説明 (メモ)</label>
+                            <textarea data-field="description" class="edit-input mt-0.5 block w-full text-sm rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-gray-700" rows="2" placeholder="このリンクの簡単な説明（編集中のみ表示）">${escapeHTML(link.description || '')}</textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end gap-2 mt-4">
+                        <button class="btn-delete p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-red-100 dark:hover:bg-red-900 hover:text-red-600 dark:hover:text-red-400 transition-colors" title="削除">
+                            ${icons.delete}
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            // 表示モードUI
+            const emojiHTML = link.emoji ? `<span class="text-2xl mr-3">${escapeHTML(link.emoji)}</span>` : '';
+            const viewModeUI = `
+                <a href="${escapeHTML(link.url)}" target="_blank" rel="noopener noreferrer" class="block p-5 h-full group">
+                    <div class="flex items-center">
+                        ${emojiHTML}
+                        <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-200 group-hover:underline truncate" style="color: ${escapeHTML(color)}">
+                            ${escapeHTML(link.name)}
+                        </h3>
+                    </div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-2 truncate ${link.emoji ? 'ml-10' : ''}">
+                        ${escapeHTML(link.url)}
+                    </p>
+                </a>
+                <div class="absolute bottom-3 right-3">
+                    <button class="btn-copy p-2 rounded-lg text-gray-400 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300 transition-colors" title="リンクをコピー">
+                        ${icons.copy}
+                    </button>
+                </div>
+            `;
+
+            div.innerHTML = `
+                <div class="relative h-full">
+                    ${state.editMode ? editModeUI : viewModeUI}
+                </div>
+            `;
+            return div;
+        }
+
+        // --- イベントリスナー設定 ---
+
+        function setupLinkCardEventListeners() {
+            document.querySelectorAll('.link-card').forEach(card => {
+                const id = card.dataset.id;
+                
+                if (state.editMode) {
+                    // 編集モードのイベント
+                    const inputs = card.querySelectorAll('.edit-input');
+                    inputs.forEach(input => {
+                        if (input.classList.contains('emoji-input')) {
+                            input.addEventListener('focus', (e) => {
+                                openEmojiPicker(e.target);
+                            });
+                        } else {
+                            // その他の入力欄
+                            input.addEventListener('input', (e) => {
+                                const field = e.target.dataset.field;
+                                const link = state.links.find(l => l.id === id);
+                                if (link) {
+                                    link[field] = e.target.value;
+                                    if (field === 'color') {
+                                        card.style.borderColor = e.target.value;
+                                    }
+                                }
+                            });
+                        }
+                    });
+
+                    const deleteBtn = card.querySelector('.btn-delete');
+                    deleteBtn?.addEventListener('click', () => handleDeleteLink(id));
+
+                } else {
+                    // 表示モードのイベント
+                    const copyBtn = card.querySelector('.btn-copy');
+                    copyBtn?.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleCopyLink(id, copyBtn);
+                    });
+                }
+            });
+        }
+
+        // --- アクションハンドラ ---
+
+        function toggleEditMode() {
+            state.editMode = !state.editMode;
+            
+            $.toggleEditText.textContent = state.editMode ? '設定完了' : '設定モード';
+            $.iconSettings.classList.toggle('hidden', state.editMode);
+            $.iconClose.classList.toggle('hidden', !state.editMode);
+
+            $.editModeActions.classList.toggle('hidden', !state.editMode);
+            $.editControls.classList.toggle('hidden', !state.editMode);
+            $.addCardContainer.classList.toggle('hidden', !state.editMode);
+
+            if (state.editMode) {
+                $.toggleEditModeBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+                $.toggleEditModeBtn.classList.add('bg-gray-700', 'hover:bg-gray-600');
+                state.originalLinks = JSON.parse(JSON.stringify(state.links));
+            } else {
+                $.toggleEditModeBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+                $.toggleEditModeBtn.classList.remove('bg-gray-700', 'hover:bg-gray-600');
+            }
+            
+            render();
+        }
+
+        function handleAddNewCard() {
+            const newLink = {
+                id: 'id-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
+                name: "新しいリンク",
+                url: "http://example.com",
+                emoji: "✨",
+                color: state.defaultColor,
+                description: "",
+            };
+
+            state.links.unshift(newLink);
+            render();
+            
+            const newCardElement = document.querySelector(`[data-id="${newLink.id}"]`);
+            if (newCardElement) {
+                newCardElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            
+            showToast('新しいカードをリストの先頭に追加しました', 'info');
+        }
+
+
+        async function handleSaveChanges() {
+            if (state.sortableInstance) {
+                const newOrder = state.sortableInstance.toArray();
+                const newLinks = newOrder.map(id => state.links.find(link => link.id === id));
+                state.links = newLinks.filter(Boolean);
+            }
+            
+            const success = await postLinks(state.links);
+            if (success) {
+                toggleEditMode();
+            }
+        }
+
+        function handleCancelChanges() {
+            state.links = JSON.parse(JSON.stringify(state.originalLinks));
+            toggleEditMode();
+            render();
+            showToast('変更は破棄されました', 'info');
+        }
+
+        function handleDeleteLink(id) {
+            const link = state.links.find(l => l.id === id);
+            // confirm() はCanvas環境では使えない可能性があるため、簡易的な確認とします。
+            // 本番環境ではカスタムモーダルを推奨します。
+            const confirmed = window.confirm(`「${link.emoji || ''} ${link.name}」を削除しますか？`);
+            if (confirmed) {
+                state.links = state.links.filter(l => l.id !== id);
+                render();
+                showToast('リンクを削除しました。保存ボタンを押してください。', 'info');
+            }
+        }
+
+        function handleCopyLink(id, button) {
+            const link = state.links.find(l => l.id === id);
+            if (!link) return;
+            const url = link.url;
+
+            const textarea = document.createElement('textarea');
+            textarea.value = url;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = 0;
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+            
+            let success = false;
+            try {
+                // execCommandは非推奨ですが、Canvas iframeの制限のためこちらを使用します
+                success = document.execCommand('copy');
+            } catch (err) {
+                console.error('Copy failed:', err);
+                success = false;
+            }
+
+            document.body.removeChild(textarea);
+            
+            if (success) {
+                showToast('コピーしました!', 'success');
+                const originalIcon = button.innerHTML;
+                button.innerHTML = icons.check;
+                setTimeout(() => {
+                    button.innerHTML = originalIcon;
+                }, 2000);
+            } else {
+                showToast('コピーに失敗しました', 'error');
+            }
+        }
+
+        // --- ★ 修正: 絵文字ピッカー関連 ---
+
+        function renderEmojiPicker() {
+            $.emojiPickerGrid.innerHTML = '';
+            const query = $.emojiSearchInput.value.toLowerCase().trim();
+
+            let filteredEmojis;
+
+            if (query) {
+                // 検索時: カテゴリを無視して全件検索
+                filteredEmojis = emojiPickerData.filter(emoji => {
+                    return emoji.e.includes(query) || 
+                           emoji.k.some(k => k.toLowerCase().includes(query));
+                });
+            } else {
+                // 通常時: 現在のカテゴリでフィルタリング
+                filteredEmojis = emojiPickerData.filter(emoji => emoji.c === state.currentEmojiCategory);
+            }
+
+            if (filteredEmojis.length === 0) {
+                $.emojiPickerGrid.innerHTML = `<p class="col-span-7 sm:col-span-8 text-center text-gray-500 dark:text-gray-400">見つかりません</p>`;
+                return;
+            }
+
+            filteredEmojis.forEach(emoji => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'emoji-btn text-2xl p-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500';
+                btn.textContent = emoji.e;
+                btn.setAttribute('role', 'gridcell');
+                btn.setAttribute('aria-label', emoji.k[0]); // ラベル（例: 笑顔）
+                btn.addEventListener('click', () => {
+                    selectEmoji(emoji.e);
+                });
+                $.emojiPickerGrid.appendChild(btn);
+            });
+        }
+
+        function renderEmojiTabs() {
+            $.emojiPickerTabs.innerHTML = '';
+            Object.keys(emojiCategories).forEach(key => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'emoji-tab-btn px-3 py-1.5 rounded-md text-sm font-medium';
+                btn.textContent = emojiCategories[key]; // 例: "顔"
+                btn.dataset.category = key; // 例: "smileys"
+                btn.setAttribute('role', 'tab');
+                btn.setAttribute('aria-selected', state.currentEmojiCategory === key);
+
+                btn.addEventListener('click', () => {
+                    state.currentEmojiCategory = key;
+                    $.emojiSearchInput.value = ''; // タブ切り替え時は検索をリセット
+                    renderEmojiTabs(); // タブの選択状態を更新
+                    renderEmojiPicker(); // グリッドを更新
+                });
+                $.emojiPickerTabs.appendChild(btn);
+            });
+        }
+
+        function openEmojiPicker(targetInput) {
+            if (!state.editMode) return;
+            state.currentEmojiInput = targetInput;
+            state.currentEmojiCategory = 'smileys'; // デフォルトカテゴリ
+            
+            $.emojiSearchInput.value = '';
+            renderEmojiTabs(); // タブを描画
+            renderEmojiPicker(); // 絵文字グリッドを描画
+            
+            $.emojiPickerModal.classList.remove('hidden');
+            $.emojiSearchInput.focus();
+        }
+
+        function closeEmojiPicker() {
+            $.emojiPickerModal.classList.add('hidden');
+            if (state.currentEmojiInput) {
+                state.currentEmojiInput.blur();
+            }
+            state.currentEmojiInput = null;
+        }
+
+        function selectEmoji(emoji) {
+            if (state.currentEmojiInput) {
+                state.currentEmojiInput.value = emoji;
+                
+                // 変更をstateに即時反映
+                const id = state.currentEmojiInput.closest('.link-card').dataset.id;
+                const link = state.links.find(l => l.id === id);
+                if (link) {
+                    link.emoji = emoji;
+                }
+            }
+            closeEmojiPicker();
+        }
+
+
+        // --- ユーティリティ ---
+
+        function setupSortable() {
+            if (state.editMode) {
+                if (state.sortableInstance) {
+                    state.sortableInstance.destroy();
+                }
+                state.sortableInstance = Sortable.create($.linksContainer, {
+                    animation: 150,
+                    handle: '.drag-handle',
+                    ghostClass: 'sortable-ghost',
+                    chosenClass: 'sortable-chosen',
+                });
+            } else {
+                if (state.sortableInstance) {
+                    state.sortableInstance.destroy();
+                    state.sortableInstance = null;
+                }
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            const colors = {
+                info: 'bg-blue-500',
+                success: 'bg-green-500',
+                error: 'bg-red-500',
+            };
+            const toast = document.createElement('div');
+            toast.className = `toast-message toast-enter ${colors[type]} text-white px-4 py-2 rounded-lg shadow-md`;
+            toast.textContent = message;
+            
+            $.toastContainer.appendChild(toast);
+            
+            requestAnimationFrame(() => {
+                toast.classList.remove('toast-enter');
+            });
+
+            setTimeout(() => {
+                toast.classList.add('toast-leave');
+                toast.addEventListener('transitionend', () => {
+                    toast.remove();
+                });
+            }, 3000);
+        }
+
+        function escapeHTML(str) {
+            if (str === null || str === undefined) {
+                return '';
+            }
+            return String(str).replace(/[&<>"']/g, function(match) {
+                return {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#39;'
+                }[match];
+            });
+        }
+
+        // --- 初期化 ---
+
+        async function init() {
+            // メインのイベントリスナー
+            $.toggleEditModeBtn.addEventListener('click', toggleEditMode);
+            $.addNewCardBtn.addEventListener('click', handleAddNewCard);
+            $.saveChangesBtn.addEventListener('click', handleSaveChanges);
+            $.cancelChangesBtn.addEventListener('click', handleCancelChanges);
+
+            // 絵文字ピッカーのイベントリスナー
+            $.emojiSearchInput.addEventListener('input', renderEmojiPicker); // 引数なしで呼び出す
+            // モーダルの外側をクリックしたら閉じる
+            $.emojiPickerModal.addEventListener('click', (e) => {
+                if (e.target === $.emojiPickerModal) {
+                    closeEmojiPicker();
+                }
+            });
+
+            // データをロードして初回描画
+            await fetchLinks();
+            render();
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+[
+  {
+    "id": "id-1762195672921-59hq7eqz9",
+    "name": "LlamaSwap",
+    "url": "http://192.168.0.4:8081/ui/#/models",
+    "color": "#1b6b9d",
+    "emoji": "🐳"
+  },
+  {
+    "id": "id-1762195762100-x9giclrtp",
+    "name": "OpenWebUI",
+    "url": "http://192.168.0.4:3000",
+    "color": "#524e56",
+    "emoji": "😊"
+  },
+  {
+    "id": "id-1765734902848-bjptgwjuk",
+    "name": "LightRAG",
+    "url": "http://192.168.0.4:9621/webui/",
+    "color": "#966908",
+    "emoji": "🐱"
+  },
+  {
+    "id": "id-1771567430124-nysfqhgwt",
+    "name": "ProxyServer",
+    "url": "http://192.168.0.4:6060/ui",
+    "color": "#4d2505",
+    "emoji": "🔨"
+  },
+  {
+    "id": "id-1765017370343-0klaj4txi",
+    "name": "Whoogle",
+    "url": "http://192.168.0.4:5000",
+    "color": "#11791d",
+    "description": "/searxng/search?q=\u003cquery\u003e",
+    "emoji": "⛺️"
+  },
+  {
+    "id": "id-1762195853793-slb7vgams",
+    "name": "Firecrawl",
+    "url": "http://192.168.0.4:3002/",
+    "color": "#bf3636",
+    "description": "APIのエンドポイント",
+    "emoji": "🔥"
+  }
+]
